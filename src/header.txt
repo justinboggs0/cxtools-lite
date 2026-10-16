@@ -4,6 +4,7 @@
 // @version      __VERSION__
 // @description  Printable Equipment Information list for one Procore inspection or a filtered Inspections list.
 // @match        https://*.procore.com/*
+// @license      All rights reserved. Personal use only; see LICENSE
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue

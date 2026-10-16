@@ -37,3 +37,7 @@ The script people install is `cxtools-lite.user.js`. It is built from the files 
 2. Raise `version` in `package.json` (for example `1.0.0` to `1.0.1`). Without a higher version, Tampermonkey won't pick up the change.
 3. Run `npm run check`. It rebuilds `cxtools-lite.user.js` and runs the tests.
 4. Commit and push to `main`.
+
+## License
+
+You may install CxTools Lite and use it for your own work. Anything more, such as installing it for other people, putting it into company systems, or copying, changing or sharing the code, needs written permission first. The full terms are in `LICENSE`.

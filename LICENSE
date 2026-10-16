@@ -1,0 +1,71 @@
+CxTools Lite License
+
+Copyright (c) 2026 Justin Boggs
+All rights reserved.
+
+This license covers the CxTools Lite source code, the built script
+cxtools-lite.user.js, and the documentation in this repository (together,
+"the Software"). The Software is not open source. The copyright holder keeps
+every right that this license does not expressly grant.
+
+1. What you may do
+
+   You, as an individual person, may install the Software in your own web
+   browser from the official install link in the README, and use it for your
+   own work. Updates delivered through that link are covered too.
+
+2. What needs written permission first
+
+   Unless the copyright holder has given you written permission in advance,
+   you may not:
+
+   a. install, deploy or push the Software to anyone else's computer or
+      browser, or to many computers or browsers at once, by any means,
+      including managed browser policies, software deployment tools,
+      extension stores, internal portals or login scripts;
+   b. copy, re-host, mirror or distribute the Software, or any part of it,
+      except for a private copy made to install it under section 1;
+   c. modify the Software, translate it, or build other work from it, and
+      share or use that work with or for anyone else;
+   d. include the Software, or any part of it, in another program, tool,
+      product, service or company system;
+   e. sell, rent, lease or sublicense the Software, or offer it as a service;
+   f. remove or change this license or any copyright notice.
+
+   These limits apply to companies, employers, managers, IT departments and
+   anyone acting for them, the same as to individuals. Using the Software at
+   work, or a coworker sharing the install link, does not give any company or
+   organization a license to it.
+
+3. Viewing on GitHub
+
+   The repository is public so that the install link and automatic updates
+   work. Viewing the code, and forking it on GitHub as GitHub's Terms of
+   Service allow, gives no rights beyond section 1.
+
+4. Asking for permission
+
+   To ask for any use not allowed in section 1, contact the copyright holder
+   through https://github.com/justinboggs0/cxtools-lite. Permission counts only
+   if it is in writing from the copyright holder and names the use allowed.
+
+5. Ending the permission
+
+   Your permission under section 1 ends automatically if you break this
+   license. The copyright holder may also end it for any person or
+   organization by written notice. When it ends, you must stop using the
+   Software and remove it.
+
+6. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NON-INFRINGEMENT. Check what it produces before you
+   rely on it.
+
+7. Limitation of liability
+
+   IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR
+   OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OF OR
+   OTHER DEALINGS IN THE SOFTWARE.

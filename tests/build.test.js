@@ -44,3 +44,10 @@ test('the built script wires the button and the menu command', async () => {
   assert.ok(out.includes('watchRoute('));
   assert.doesNotMatch(out, /^\s*(import|export) /m);
 });
+
+test('the script and package point to the license', async () => {
+  const out = await readFile('cxtools-lite.user.js', 'utf8');
+  assert.deepEqual(meta(out, 'license'), ['All rights reserved. Personal use only; see LICENSE']);
+  assert.equal(JSON.parse(await readFile('package.json', 'utf8')).license, 'SEE LICENSE IN LICENSE');
+  assert.match(await readFile('LICENSE', 'utf8'), /^Copyright \(c\) \d{4} .+\nAll rights reserved\.$/m);
+});
