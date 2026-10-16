@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Module list, dependencies first; main last.
-export const ORDER = ['config', 'naming', 'endpoints', 'net', 'api', 'route', 'inspection', 'main'];
+export const ORDER = ['config', 'naming', 'endpoints', 'net', 'api', 'route', 'inspection', 'equipment', 'main'];
 
 const DECL_RE = /^(?:export )?(?:async )?(?:function\*?|class|const|let)\s+([A-Za-z_$][\w$]*)/gm;
 

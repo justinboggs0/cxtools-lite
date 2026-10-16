@@ -1,0 +1,7 @@
+﻿"Template","Inspection","Asset Tag Plate ID","Location","Status","Item #","Field","Value"
+"L2 Test Switchgear","Cx-Test Switchgear #7","TEST-TAG-01","Test Hall A","Open","1.1","Manufacturer","Test Maker"
+"L2 Test Switchgear","Cx-Test Switchgear #7","TEST-TAG-01","Test Hall A","Open","1.2","Model","M-1"
+"L2 Test Switchgear","Cx-Test Switchgear #7","TEST-TAG-01","Test Hall A","Open","1.3","Model (2)",""
+"L3 Test Transformer","Cx-Test <Transformer> ""B"" #8","TEST-TAG-01","Test Hall A","Open","1.1","Manufacturer","Test Maker"
+"L3 Test Transformer","Cx-Test <Transformer> ""B"" #8","TEST-TAG-01","Test Hall A","Open","1.2","Model","M-1"
+"L3 Test Transformer","Cx-Test <Transformer> ""B"" #8","TEST-TAG-01","Test Hall A","Open","1.3","Model (2)",""
