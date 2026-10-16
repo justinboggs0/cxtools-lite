@@ -1,0 +1,15 @@
+// ==UserScript==
+// @name         CxTools Lite
+// @namespace    cxtools-lite
+// @version      __VERSION__
+// @description  Printable Equipment Information list for one Procore inspection or a filtered Inspections list.
+// @match        https://*.procore.com/*
+// @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
+// @updateURL    https://raw.githubusercontent.com/justinboggs0/cxtools-lite/main/cxtools-lite.user.js
+// @downloadURL  https://raw.githubusercontent.com/justinboggs0/cxtools-lite/main/cxtools-lite.user.js
+// @run-at       document-idle
+// @noframes
+// ==/UserScript==
