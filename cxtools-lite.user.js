@@ -693,6 +693,364 @@ async function runEquipment(api, ctx, stubs, ui, win, settings, save) {
   ui.finish();
 }
 
+// ---------------------------------------------------------------- ui/styles
+// Styles for the button and the dialog. Every rule is scoped under #cxl-fab or #cxl-overlay.
+
+/** The stylesheet. */
+const CSS = `
+    #cxl-fab{position:fixed;right:24px;bottom:140px;z-index:2147483000;background:#f47e42;color:#fff;border:0;border-radius:22px;
+      padding:10px 16px;font:600 13px/1.2 system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;touch-action:none;user-select:none}
+    #cxl-fab:hover{background:#e0692c}
+    #cxl-fab.cxl-dragging{cursor:grabbing;opacity:.85}
+    #cxl-fab.cxl-collapsed{padding:8px 9px;border-radius:14px;font-size:14px}
+    #cxl-fab[hidden],#cxl-overlay [hidden]{display:none !important}
+    #cxl-overlay{position:fixed;inset:0;z-index:2147483001;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+    #cxl-overlay .cxl-box{background:#fff;color:#232729;width:min(680px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;
+      border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.3);font:13px/1.4 system-ui,sans-serif}
+    #cxl-overlay .cxl-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid #e3e6e8;font-weight:600;font-size:15px}
+    #cxl-overlay .cxl-x{border:0;background:none;font-size:22px;cursor:pointer;color:#6a767c}
+    #cxl-overlay .cxl-body{padding:14px 18px;overflow:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+    #cxl-overlay .cxl-pickbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    #cxl-overlay .cxl-pickbar input{flex:1;min-width:160px;padding:6px 8px;border:1px solid #c4cbcf;border-radius:4px}
+    #cxl-overlay .cxl-list{border:1px solid #e3e6e8;border-radius:4px;max-height:300px;overflow:auto}
+    #cxl-overlay .cxl-list label{display:flex;gap:8px;padding:5px 8px;border-bottom:1px solid #f1f3f4;align-items:center}
+    #cxl-overlay .cxl-st{margin-left:auto;color:#6a767c;font-size:12px;white-space:nowrap}
+    #cxl-overlay .cxl-bar{height:8px;background:#e3e6e8;border-radius:4px;overflow:hidden}
+    #cxl-overlay .cxl-bar div{height:100%;width:0;background:#f47e42;transition:width .2s}
+    #cxl-overlay .cxl-count{margin-top:6px;color:#4d5559;font-size:12px}
+    #cxl-overlay .cxl-status{margin-top:2px;word-break:break-word}
+    #cxl-overlay .cxl-foot{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:12px 18px;border-top:1px solid #e3e6e8}
+    #cxl-overlay button.cxl-btn{padding:7px 14px;border-radius:4px;border:1px solid #c4cbcf;background:#fff;cursor:pointer;font:inherit}
+    #cxl-overlay button.cxl-primary{background:#f47e42;border-color:#f47e42;color:#fff;font-weight:600}
+    #cxl-overlay button:disabled{opacity:.5;cursor:default}
+  `;
+
+/**
+ * Adds the stylesheet to the page.
+ * @param {function(string): void} addStyle GM_addStyle
+ * @returns {void}
+ */
+function injectStyles(addStyle) {
+  addStyle(CSS);
+}
+
+// ---------------------------------------------------------------- ui/dom
+// Builds page elements. Text is always added as text, never parsed as HTML.
+
+/**
+ * Creates an element.
+ * @param {string} tag
+ * @param {Object<string, *>} [attrs] 'class' sets className; 'onxxx' adds an event listener; true sets an empty
+ *   attribute; false, null and undefined are skipped; anything else becomes an attribute
+ * @param {...(Node|string|number|null|Array)} children nested arrays are flattened; null is skipped; other values
+ *   become text nodes
+ * @returns {HTMLElement}
+ */
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, '');
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c != null) el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+
+// ---------------------------------------------------------------- ui/fab
+// The orange button. It shows on Inspections pages, can be dragged anywhere, shrinks to a small tab on a
+// press-and-hold, and remembers where it was left.
+
+
+const HOLD_MS = 600;
+// Movement below this many pixels is a click, not a drag.
+const DRAG_THRESHOLD_PX = 4;
+
+/**
+ * Pulls a top-left position back inside the viewport so the whole button stays reachable.
+ * @param {{x: number, y: number}} pos wanted top-left, in CSS pixels
+ * @param {{width: number, height: number}} size the button's size
+ * @param {{vw: number, vh: number}} viewport the window's inner size
+ * @returns {{x: number, y: number}} a position with the button fully visible (top-left corner when it can't fit)
+ */
+function clampPosition({ x, y }, { width, height }, { vw, vh }) {
+  const clamp = (v, max) => Math.min(Math.max(0, Number.isFinite(v) ? v : 0), Math.max(0, max));
+  return { x: clamp(x, vw - width), y: clamp(y, vh - height) };
+}
+
+/**
+ * Creates the button (hidden until `sync` gets a route).
+ * @param {{doc: Document, win: Window, onOpen: function(): void, initial: {x: number, y: number, collapsed?: boolean}|null,
+ *   savePosition: function({x: number|null, y: number|null, collapsed: boolean}|null): void}} options
+ * @returns {{el: HTMLButtonElement, sync: function(object|null): void, reset: function(): void}}
+ *   sync(route) shows, hides and labels the button; reset() puts it back in the default corner
+ */
+function mountFab({ doc, win, onOpen, initial, savePosition }) {
+  let collapsed = !!initial?.collapsed;
+  let position = initial && Number.isFinite(initial.x) ? { x: initial.x, y: initial.y } : null;
+  let route = null;
+  const el = h('button', { id: 'cxl-fab', hidden: true, type: 'button', title: 'Drag to move. Press and hold to shrink.' });
+
+  const label = () => {
+    if (collapsed) return '⬇';
+    return route?.page === 'inspection' ? 'CxTools Lite: this inspection' : 'CxTools Lite: equipment list';
+  };
+  const place = () => {
+    if (!position) {
+      // Default corner from the stylesheet.
+      el.style.left = el.style.top = '';
+      el.style.right = el.style.bottom = '';
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const p = clampPosition(position, { width: rect.width || 120, height: rect.height || 40 }, { vw: win.innerWidth, vh: win.innerHeight });
+    Object.assign(el.style, { left: `${p.x}px`, top: `${p.y}px`, right: 'auto', bottom: 'auto' });
+  };
+  // Saved as {x, y, collapsed}; x and y are null while the button sits in its default corner.
+  const persist = () => {
+    try {
+      savePosition(position || collapsed ? { x: position?.x ?? null, y: position?.y ?? null, collapsed } : null);
+    } catch (e) {
+      console.warn('CxTools Lite: could not save the button position', e);
+    }
+  };
+
+  const setCollapsed = value => {
+    collapsed = !!value;
+    el.classList.toggle('cxl-collapsed', collapsed);
+    el.textContent = label();
+    place();
+  };
+
+  // A press that moves is a drag; a press held without moving shrinks or restores the button; anything else is
+  // a click. The click that follows a drag or a hold is ignored.
+  let press = null;
+  let swallowClick = false;
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const rect = el.getBoundingClientRect();
+    press = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: rect.left, oy: rect.top, dragging: false, held: false };
+    press.timer = win.setTimeout(() => {
+      if (!press || press.dragging) return;
+      press.held = true;
+      setCollapsed(!collapsed);
+      persist();
+    }, HOLD_MS);
+    try { el.setPointerCapture(e.pointerId); } catch { /* not needed for the drag to work */ }
+  });
+  el.addEventListener('pointermove', e => {
+    if (!press || e.pointerId !== press.id) return;
+    const dx = e.clientX - press.sx;
+    const dy = e.clientY - press.sy;
+    if (!press.dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    if (!press.dragging) {
+      press.dragging = true;
+      win.clearTimeout(press.timer);
+      el.classList.add('cxl-dragging');
+    }
+    position = { x: press.ox + dx, y: press.oy + dy };
+    place();
+  });
+  const endPress = e => {
+    if (!press || (e && e.pointerId !== press.id)) return;
+    win.clearTimeout(press.timer);
+    el.classList.remove('cxl-dragging');
+    if (press.dragging) {
+      // Save where the button actually ended up.
+      const rect = el.getBoundingClientRect();
+      position = { x: rect.left, y: rect.top };
+      persist();
+    }
+    swallowClick = press.dragging || press.held;
+    press = null;
+  };
+  el.addEventListener('pointerup', endPress);
+  el.addEventListener('pointercancel', endPress);
+  el.addEventListener('click', () => {
+    if (swallowClick) { swallowClick = false; return; }
+    onOpen();
+  });
+  // Keep the button on screen when the window gets smaller.
+  win.addEventListener('resize', place);
+
+  const sync = r => {
+    route = r;
+    // Procore can replace the page's content; put the button back if it was removed.
+    if (!doc.body.contains(el)) doc.body.append(el);
+    el.hidden = !r;
+    el.textContent = label();
+    place();
+  };
+  const reset = () => {
+    position = null;
+    collapsed = false;
+    el.classList.remove('cxl-collapsed');
+    el.textContent = label();
+    place();
+    persist();
+  };
+  setCollapsed(collapsed);
+  return { el, sync, reset };
+}
+
+// ---------------------------------------------------------------- ui/dialog
+// The dialog: pick inspections, then make the Equipment list.
+
+
+/**
+ * Hides the rows whose text does not contain `text` (case and surrounding spaces ignored).
+ * @param {Array<{text: string, hidden: boolean}>} rows text is lower case
+ * @param {string} text
+ */
+function filterRows(rows, text) {
+  const q = text.trim().toLowerCase();
+  for (const r of rows) r.hidden = !r.text.includes(q);
+}
+
+/**
+ * Ticks or unticks every row that is not hidden.
+ * @param {Array<{hidden: boolean, checked: boolean}>} rows
+ * @param {boolean} checked
+ */
+function tickVisible(rows, checked) {
+  for (const r of rows) if (!r.hidden) r.checked = checked;
+}
+
+/** @returns {string} e.g. '3 of 10 selected' */
+const countText = rows => `${rows.filter(r => r.checked).length} of ${rows.length} selected`;
+
+/** @returns {Array<object>} the data of the ticked rows, in list order */
+const selectedStubs = rows => rows.filter(r => r.checked).map(r => r.data);
+
+/**
+ * Opens the dialog for the current page. Does nothing while a run in an open dialog is still going.
+ * @param {{doc: Document, win: Window, api: object, route: object, settings: object,
+ *   save: function(Blob, string, Document=): void}} options route includes origin
+ */
+function openDialog({ doc, win, api, route, settings, save }) {
+  const old = doc.getElementById('cxl-overlay');
+  if (old?.dataset?.running === '1') return;
+  old?.remove();
+  const ctx = route;
+  const single = route.page === 'inspection';
+  let rows = [];
+  let running = false;
+
+  const bar = h('div');
+  const progressCount = h('div', { class: 'cxl-count' });
+  const status = h('div', { class: 'cxl-status' });
+  const prog = h('div', { hidden: true }, h('div', { class: 'cxl-bar' }, bar), progressCount, status);
+  const eqBtn = h('button', { class: 'cxl-btn cxl-primary', type: 'button' }, 'Equipment list');
+  const closeBtn = h('button', { class: 'cxl-btn', type: 'button' }, 'Close');
+
+  const ui = {
+    job: null,
+    status: t => { status.textContent = t; },
+    progress: (d, t) => {
+      bar.style.width = `${t ? (100 * d) / t : 0}%`;
+      progressCount.textContent = `${d} of ${t} inspections`;
+    },
+    finish: () => {
+      running = false;
+      delete overlay.dataset.running;
+      closeBtn.textContent = 'Close';
+      closeBtn.disabled = false;
+    },
+  };
+
+  // The list of inspections (list page) or the inspection's name (one inspection).
+  let pick;
+  let selCount = null;
+  const updateCount = () => {
+    if (single) return;
+    selCount.textContent = countText(rows);
+    eqBtn.disabled = !rows.some(r => r.checked);
+  };
+  const show = () => {
+    for (const r of rows) {
+      r.el.hidden = r.hidden;
+      r.cb.checked = r.checked;
+    }
+    updateCount();
+  };
+  if (single) {
+    pick = h('div', {}, `Inspection ${route.inspectionId}`);
+    api.json(ctx, EP.inspection(ctx, route.inspectionId))
+      .then(insp => { if (insp?.name) pick.textContent = inspTitle({ id: route.inspectionId, ...insp }); }, () => {});
+  } else {
+    const filter = h('input', { type: 'search', placeholder: 'Filter' });
+    filter.addEventListener('input', () => { filterRows(rows, filter.value); show(); });
+    selCount = h('span', { class: 'cxl-st' });
+    const list = h('div', { class: 'cxl-list' }, 'Loading inspections from the current filters…');
+    pick = h('div', {},
+      h('div', { class: 'cxl-pickbar' }, filter,
+        h('button', { class: 'cxl-btn', type: 'button', onclick: () => { tickVisible(rows, true); show(); } }, 'Select all'),
+        h('button', { class: 'cxl-btn', type: 'button', onclick: () => { tickVisible(rows, false); show(); } }, 'Select none'),
+        selCount),
+      list);
+    api.filteredInspections(ctx, new URLSearchParams(win.location.search)).then(data => {
+      list.textContent = '';
+      if (!data.length) {
+        list.textContent = 'No inspections match the current filters.';
+        return;
+      }
+      rows = data.map(l => {
+        const title = `${l.name} #${l.identifier ?? l.number}`;
+        const row = { text: `${title} ${l.status || ''}`.toLowerCase(), hidden: false, checked: true, data: l };
+        row.cb = h('input', { type: 'checkbox', checked: true, onchange: () => { row.checked = row.cb.checked; updateCount(); } });
+        row.el = h('label', {}, row.cb, h('span', {}, title), h('span', { class: 'cxl-st' }, l.status || ''));
+        list.append(row.el);
+        return row;
+      });
+      filterRows(rows, filter.value);
+      show();
+    }).catch(e => {
+      list.textContent = e instanceof LoggedOutError ? LOGGED_OUT_TEXT : `Couldn't load inspections: ${e.message}`;
+    });
+    updateCount();
+  }
+
+  const overlay = h('div', { id: 'cxl-overlay' },
+    h('div', { class: 'cxl-box', role: 'dialog', 'aria-label': 'CxTools Lite' },
+      h('div', { class: 'cxl-head' },
+        h('span', {}, `CxTools Lite · ${single ? 'This inspection' : 'Inspections (current filters)'}`),
+        h('button', { class: 'cxl-x', title: 'Close', type: 'button', onclick: () => closeBtn.click() }, '×')),
+      h('div', { class: 'cxl-body' }, pick, prog),
+      h('div', { class: 'cxl-foot' }, closeBtn, eqBtn)));
+  doc.body.append(overlay);
+
+  closeBtn.addEventListener('click', () => {
+    if (running) {
+      if (ui.job) ui.job.cancelled = true;
+      closeBtn.textContent = 'Cancelling…';
+      closeBtn.disabled = true;
+      return;
+    }
+    overlay.remove();
+  });
+
+  eqBtn.addEventListener('click', () => {
+    const stubs = single ? [{ id: route.inspectionId }] : selectedStubs(rows);
+    if (!stubs.length) return;
+    // Opened before anything is awaited, or the popup blocker stops it.
+    const reportWin = openReportWindow(win);
+    running = true;
+    overlay.dataset.running = '1';
+    eqBtn.disabled = true;
+    pick.hidden = true;
+    prog.hidden = false;
+    closeBtn.textContent = 'Cancel';
+    runEquipment(api, ctx, stubs, ui, reportWin, settings, save).catch(e => {
+      reportWin?.close();
+      ui.status(`Stopped: ${e.message}`);
+      ui.finish();
+    });
+  });
+}
+
 // ---------------------------------------------------------------- main
 // Starts CxTools Lite on the page.
 
