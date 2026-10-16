@@ -695,10 +695,11 @@ async function runEquipment(api, ctx, stubs, ui, win, settings, save) {
 
 // ---------------------------------------------------------------- ui/styles
 // Styles for the button and the dialog. Every rule is scoped under #cxl-fab or #cxl-overlay.
+// The button sits lower than the full CxTools buttons so both can be seen when both are installed.
 
 /** The stylesheet. */
 const CSS = `
-    #cxl-fab{position:fixed;right:24px;bottom:140px;z-index:2147483000;background:#f47e42;color:#fff;border:0;border-radius:22px;
+    #cxl-fab{position:fixed;right:24px;bottom:90px;z-index:2147483000;background:#f47e42;color:#fff;border:0;border-radius:22px;
       padding:10px 16px;font:600 13px/1.2 system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;touch-action:none;user-select:none}
     #cxl-fab:hover{background:#e0692c}
     #cxl-fab.cxl-dragging{cursor:grabbing;opacity:.85}

@@ -15,3 +15,9 @@ test('the button and the dialog use cxl- ids only', async () => {
     assert.doesNotMatch(await readFile(f, 'utf8'), /['"]pid-|['"]cx-(?!l-)/, f);
   }
 });
+
+test('the button does not sit on top of the full CxTools buttons', () => {
+  const rule = CSS.match(/#cxl-fab\{[^}]*\}/)[0];
+  // CxTools puts its own buttons at bottom 140px and 190px on the right.
+  assert.doesNotMatch(rule, /bottom:(140|190)px/);
+});

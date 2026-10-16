@@ -172,3 +172,18 @@ test('an inspection that cannot be read is named in the notes and the rest still
   assert.match(html, /Could not read Two: HTTP 500 on \/x/);
   assert.match(ui.statuses.at(-1), /1 inspection\(s\) with Equipment Information/);
 });
+
+test('Cancel stops reading and says how many were read', async () => {
+  const fixtures = [1, 2, 3].map(id => inspectionFixture({ id, identifier: id }));
+  const api = fakeApi(fixtures);
+  const ui = fakeUi();
+  // Pressing Cancel in the dialog sets job.cancelled; here it happens once the first inspection is read.
+  ui.progress = d => { if (d === 1) ui.job.cancelled = true; };
+  let html = '';
+  await runEquipment(api, ctx, [{ id: 1 }, { id: 2 }, { id: 3 }], ui, null, { ...DEFAULTS, equipmentConcurrency: 1 },
+    async blob => { html = await blob.text(); });
+  assert.equal(api.calls.some(p => p === EP.inspection(ctx, 2)), false);
+  assert.match(html, /Cancelled: only 1 of 3 inspections were read\./);
+  assert.match(ui.statuses.at(-1), /^Cancelled\. /);
+  assert.equal(ui.finished, 1);
+});
