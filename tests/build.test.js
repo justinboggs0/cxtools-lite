@@ -36,3 +36,11 @@ test('the committed build matches package.json', async () => {
   const { version } = JSON.parse(await readFile('package.json', 'utf8'));
   assert.deepEqual(meta(await readFile('cxtools-lite.user.js', 'utf8'), 'version'), [version]);
 });
+
+test('the built script wires the button and the menu command', async () => {
+  const out = await readFile('cxtools-lite.user.js', 'utf8');
+  assert.ok(out.includes("GM_registerMenuCommand('Reset button position'"));
+  assert.ok(out.includes('mountFab('));
+  assert.ok(out.includes('watchRoute('));
+  assert.doesNotMatch(out, /^\s*(import|export) /m);
+});
