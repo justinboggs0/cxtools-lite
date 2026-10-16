@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CxTools Lite
 // @namespace    cxtools-lite
-// @version      1.0.0
+// @version      1.0.1
 // @description  Printable Equipment Information list for one Procore inspection or a filtered Inspections list.
 // @match        https://*.procore.com/*
 // @license      All rights reserved. Personal use only; see LICENSE
